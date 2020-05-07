@@ -1,0 +1,77 @@
+\documentclass[letterpaper]{dapper-invoice}
+%\documentclass[letterpaper,currency=dollar]{dapper-invoice}
+%\documentclass[letterpaper,currency=euro]{dapper-invoice}
+%\documentclass[letterpaper,currency=pound]{dapper-invoice}
+
+\newcommand{\invoiceNo}{|| invoice.number ||}
+\newcommand{\balance}{|| invoice.balance ||}
+\newcommand{\duein}{|| invoice.due_in ||}% days
+
+\newcommand{\meName}{|| invoice.me.name ||}
+\newcommand{\meAddressA}{|| invoice.me.address1 ||}
+\newcommand{\meAddressB}{|| invoice.me.address2 ||}
+\newcommand{\mePhone}{|| invoice.me.phone ||}
+\newcommand{\meEmail}{|| invoice.me.email ||}
+\newcommand{\clientName}{|| invoice.client.name ||}
+\newcommand{\clientAddressA}{|| invoice.client.address1 ||}
+\newcommand{\clientAddressB}{|| invoice.client.address2 ||}
+
+\setmetadata{\meName}{\meName}{\invoiceNo}{\clientName}
+
+\defaultfontfeatures{ Path = ./Fonts/ }
+\usepackage{fontawesome}
+
+\begin{document}
+
+\newfontface\mainLightItalic{OpenSans-LightItalic}
+\makeheader{\includegraphics[height=\fontcharht\font`\B]{larc-icon.png}\mainLightItalic || invoice.me.short_name ||}{\invoiceNo}
+
+\twocolumnlayout{
+    \begin{infoSection}
+        \infoBox{Client}{\clientName \\
+                         \clientAddressA \\
+                         \clientAddressB }
+        <|- if invoice.client.contact |>
+        \infoBox{Contact}{|| invoice.client.contact.name ||}
+        <|- if invoice.client.contact.phone |>
+        \infoSub{\faMobilePhone}{\small\slshape || invoice.client.contact.phone ||}<| endif |>
+        <|- if invoice.client.contact.email |>
+        \infoSub{\tiny\faEnvelope}{\small\slshape \emaillink{client@example.com}}<| endif |> <| endif |>
+        \noalign{\addvspace{8ex}}
+        \infoBox{}{
+            {\large\raisebox{.55\height}\currencysym\huge\formatcurrency{\balance} \arrowbase} \\
+            {\small\color{subduedColor} due \duedate{\duein}}
+        }
+    \end{infoSection}
+}{
+    \begin{infoSection}
+        \infoBox{\arrowtarget Payable To}{
+            \meName \\
+            \meAddressA \\
+            \meAddressB
+        }
+        \infoSub{\faMobilePhone}{\small\slshape \mePhone}
+        \infoSub{\tiny\faEnvelope}{\small\slshape \emaillink{\meEmail}}
+    \end{infoSection}
+}
+
+\drawarrow
+
+\addvspace{4ex}
+
+\begin{hoursItemizationWithProject}
+
+    <| for hour in invoice.hours -|>
+    \lineitemp{|| hour.date ||}{|| hour.hours ||}{|| hour.rate ||}{}{
+        \item || hour.desc ||}
+
+    <| endfor |>\beginsummary
+
+    \summaryline{Total}{\currencysym\formatcurrency{\InvoiceTotal}}
+
+    \summaryline{Paid}{\currencysym\formatcurrency{|| invoice.paid or 0 ||}}
+    \summaryline{Balance Due}{\currencysym\formatcurrency{\balance}} % not really any math support (yet)
+
+\end{hoursItemizationWithProject}
+
+\end{document}
