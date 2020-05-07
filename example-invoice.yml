@@ -1,0 +1,80 @@
+# Invoice number
+number: 1
+
+# Invoice due by
+due: 2020-05-15
+
+# Identity
+me:
+  # Short name/acronym for company
+  short_name: >-
+    LARC
+  # Full name of company
+  name: |
+    Lowland~Applied~Research \\
+    Company
+  address1: >-
+    123~Anywhere~St
+  address2: >-
+    Sometown,~ST~ZIPCO
+  phone: >-
+    +1~(555)~555-5555
+  email: >-
+    any@email.com
+
+client:
+  name: |
+    Some~Long~Client \\
+    Company~Name
+  address1: >-
+    234~Client~Address~St,~Suite~X
+  address2: >-
+    Sometown,~ST~ZIPCO
+  contact:
+    name: >-
+      Client Contact Name
+    phone: >-
+      +1~(555)~555-5555
+    email: >-
+      client@email.com
+
+# Rate structure, to be referenced in the hours section
+rates:
+  # default rate if not provided
+  default: 100
+
+  # a specialized rate for something else
+  special: 50
+
+# Hours worked
+hours:
+  - # date of hours worked
+    date: 4-1-20
+    # number of hours worked
+    hours: 1
+    # description of activity being charged
+    desc: >-
+      Some individual activity
+    # rate for hours, if not provided, will use the default value from
+    # rates section
+    rate: special
+
+  - date: 4-1-20
+    hours: 1
+    desc: >-
+      Another individual activity
+
+  - date: 4-4-20
+    hours: 4
+    desc: |
+      An especially long and tedious activity with quite a lot of
+      information to provide for the client
+      \begin{itemize}
+        \item such
+        \item as
+        \item these
+      \end{itemize}
+      
+
+    
+
