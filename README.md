@@ -2,13 +2,13 @@
 
 Invoice generation scripts/utilities
 
-# Usage
+# Installation
 
 ```
 pip3 install -r requirements.txt
 ```
 
-#### To render an invoice
+# Usage
 
 Given a YAML-formatted invoice (e.g. `example-invoice.yml`)
 
