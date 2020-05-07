@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import date
 import tempfile
 import pprint
+import shutil
 
 import click
 import toolz.curried as _
@@ -16,10 +17,14 @@ from ruamel.yaml.comments import CommentedMap
 
 log = larc.logging.new_log(__name__)
 
-@click.group()
-@click.option('--loglevel', default='info')
-def main(loglevel):
-    larc.logging.setup_logging(loglevel)
+HERE = Path(__file__).expanduser().resolve().parent
+
+latex_paths = {
+    'fonts': Path(HERE, 'Fonts'),
+    'dapper': Path(HERE, 'dapper-invoice.cls'),
+    'make': Path(HERE, 'Makefile'),
+    'icon': Path(HERE, 'larc-icon.png'),
+}
 
 def format_date(dt):
     return dt.strftime('%Y/%m/%d')
@@ -48,7 +53,7 @@ def invoice_template():
             block_end_string='|>',
             comment_start_string='<#',
             comment_end_string='#>',
-            loader=jinja2.FileSystemLoader('.'),
+            loader=jinja2.FileSystemLoader(str(HERE)),
         ),
         transform_env,
         lambda e: e.get_template(
@@ -61,13 +66,30 @@ def invoice_tex_path(path):
         
 def invoice_pdf_path(path):
     return Path(path.parent, f'{path.stem}.pdf')
+
+def copy_to_temp(temp_path, invoice):
+    temp_invoice = Path(temp_path, invoice.name)
+    shutil.copy(invoice, temp_path)
+    fonts = latex_paths['fonts']
+    shutil.copytree(fonts, Path(temp_path, fonts.name))
+    for key in set(latex_paths) - {'fonts'}:
+        shutil.copy(latex_paths[key], temp_path)
+    return temp_invoice
         
+@click.group()
+@click.option('--loglevel', default='info')
+def main(loglevel):
+    larc.logging.setup_logging(loglevel)
+
 @main.command()
 @click.argument(
     'invoice', type=click.Path(exists=True),
     # help='YAML invoice to convert to PDF'
 )
-def render(invoice):
+@click.option(
+    '-o', '--output-dir', default='.'
+)
+def render(invoice, output_dir):
     invoice = Path(invoice)
     data = larc.yaml.read_yaml(invoice)
     data = _.merge(
@@ -89,14 +111,25 @@ def render(invoice):
         )},
         {'due_in': (data['due'] - date.today()).days},
     )
-    
-    template = invoice_template()
-    tex_path, pdf_path = invoice_tex_path(invoice), invoice_pdf_path(invoice)
-    log.info(f'Rendering invoice to {pdf_path}')
-    tex_path.write_text(template.render(invoice=data))
-    log.info(larc.shell.getoutput(
-        f'make {pdf_path}'
-    ))
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
+        temp_invoice = copy_to_temp(temp_path, invoice)
+
+        template = invoice_template()
+        tex_path, pdf_path = (
+            invoice_tex_path(temp_invoice),
+            invoice_pdf_path(temp_invoice)
+        )
+        log.info(f'Rendering invoice to {pdf_path}')
+        tex_path.write_text(template.render(invoice=data))
+        log.info(larc.shell.getoutput(
+            f'make {pdf_path.name}',
+            cwd=temp_path,
+        ))
+        shutil.copy(
+            pdf_path, Path(output_dir, pdf_path.name)
+        )
 
 @main.command()
 @click.option(
