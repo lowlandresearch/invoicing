@@ -41,7 +41,15 @@ def hour_transform(rates, hour):
          'rate': rates[hour.get('rate', 'default')]},
     )
 
+def md_to_latex(text):
+    return _.pipe(
+        text,
+        larc.shell.shell_pipe('pandoc -t latex'),
+        _.do(print),
+    )
+
 def transform_env(env):
+    env.filters['md_to_latex'] = md_to_latex
     return env
 
 def invoice_template():
@@ -67,12 +75,16 @@ def invoice_tex_path(path):
 def invoice_pdf_path(path):
     return Path(path.parent, f'{path.stem}.pdf')
 
-def copy_to_temp(temp_path, invoice):
+def copy_to_temp(temp_path, invoice, icon_path=None):
     temp_invoice = Path(temp_path, invoice.name)
     shutil.copy(invoice, temp_path)
     fonts = latex_paths['fonts']
     shutil.copytree(fonts, Path(temp_path, fonts.name))
-    for key in set(latex_paths) - {'fonts'}:
+    keys = set(latex_paths) - {'fonts'}
+    if icon_path is not None:
+        keys -= {'icon'}
+        shutil.copy(Path(icon_path).expanduser(), temp_path)
+    for key in keys:
         shutil.copy(latex_paths[key], temp_path)
     return temp_invoice
         
@@ -89,8 +101,11 @@ def main(loglevel):
 @click.option(
     '-o', '--output-dir', default='.'
 )
-def render(invoice, output_dir):
-    invoice = Path(invoice)
+@click.option(
+    '--icon', type=click.Path(exists=True),
+)
+def render(invoice, output_dir, icon):
+    invoice = Path(invoice).expanduser()
     data = larc.yaml.read_yaml(invoice)
     data = _.merge(
         data,
@@ -114,7 +129,7 @@ def render(invoice, output_dir):
 
     with tempfile.TemporaryDirectory() as tempdir:
         temp_path = Path(tempdir)
-        temp_invoice = copy_to_temp(temp_path, invoice)
+        temp_invoice = copy_to_temp(temp_path, invoice, icon_path=icon)
 
         template = invoice_template()
         tex_path, pdf_path = (
@@ -122,7 +137,9 @@ def render(invoice, output_dir):
             invoice_pdf_path(temp_invoice)
         )
         log.info(f'Rendering invoice to {pdf_path}')
-        tex_path.write_text(template.render(invoice=data))
+        tex_path.write_text(template.render(
+            invoice=data, icon=icon,
+        ))
         log.info(larc.shell.getoutput(
             f'make {pdf_path.name}',
             cwd=temp_path,

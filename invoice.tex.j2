@@ -16,6 +16,9 @@
 \newcommand{\clientAddressA}{|| invoice.client.address1 ||}
 \newcommand{\clientAddressB}{|| invoice.client.address2 ||}
 
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
 \setmetadata{\meName}{\meName}{\invoiceNo}{\clientName}
 
 \defaultfontfeatures{ Path = ./Fonts/ }
@@ -24,7 +27,7 @@
 \begin{document}
 
 \newfontface\mainLightItalic{OpenSans-LightItalic}
-\makeheader{\includegraphics[height=\fontcharht\font`\B]{larc-icon.png}\mainLightItalic || invoice.me.short_name ||}{\invoiceNo}
+\makeheader{\includegraphics[height=\fontcharht\font`\B]{|| icon ||} \mainLightItalic || invoice.me.short_name ||}{\invoiceNo}
 
 \twocolumnlayout{
     \begin{infoSection}
@@ -63,7 +66,8 @@
 
     <| for hour in invoice.hours -|>
     \lineitemp{|| hour.date ||}{|| hour.hours ||}{|| hour.rate ||}{}{
-        \item || hour.desc ||}
+        \item || hour.desc | md_to_latex ||
+    }
 
     <| endfor |>\beginsummary
 
